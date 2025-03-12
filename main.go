@@ -24,14 +24,14 @@ func main() {
 	// Tambahkan middleware
 	r.Use(middleware.AccessKeyMiddleware(security, secretKey, expireSeconds))
 
-	authService := service.NewAuthService("http://localhost:8082", []string{"/async"}, "")
+	authService := service.NewAuthService("http://localhost:8082", []string{"/async"})
 
 	opts := map[string]interface{}{
 		"username": "admin",
 		"password": "test",
 	}
 
-	res, err := authService.Service.Request("POST", "login", opts)
+	res, err := authService.Service.Request("POST", "login", opts, "")
 
 	if err != nil {
 		panic(err)

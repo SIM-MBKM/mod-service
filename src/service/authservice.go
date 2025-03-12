@@ -6,8 +6,8 @@ type AuthService struct {
 }
 
 // NewAuthService creates a new instance of AuthService.
-func NewAuthService(baseURI string, asyncURIs []string, token string) *AuthService {
+func NewAuthService(baseURI string, asyncURIs []string) *AuthService {
 	return &AuthService{
-		Service: NewService(baseURI, asyncURIs, token),
+		Service: NewService(baseURI, asyncURIs),
 	}
 }

@@ -19,10 +19,9 @@ type Service struct {
 	AsyncURIs    []string
 	Client       *http.Client
 	HTTPResponse *http.Response
-	token        string
 }
 
-func NewService(baseURI string, asyncURIs []string, token string) *Service {
+func NewService(baseURI string, asyncURIs []string) *Service {
 	return &Service{
 		BaseURI:   strings.TrimRight(baseURI, "/") + "/",
 		AsyncURIs: asyncURIs,
@@ -31,7 +30,7 @@ func NewService(baseURI string, asyncURIs []string, token string) *Service {
 }
 
 // getHeaders generates the headers for the request.
-func (s *Service) getHeaders() (map[string]string, error) {
+func (s *Service) getHeaders(token string) (map[string]string, error) {
 	security := helpers.NewSecurity(
 		"sha256",
 		helpers.GetEnv("APP_KEY", "secret"),
@@ -60,8 +59,8 @@ func (s *Service) getHeaders() (map[string]string, error) {
 
 	var userToken string
 
-	if s.token != "" {
-		userToken = fmt.Sprintf("Bearer %s", s.token)
+	if token != "" {
+		userToken = fmt.Sprintf("Bearer %s", token)
 	} else {
 		userToken = ""
 	}
@@ -78,7 +77,7 @@ func (s *Service) getHeaders() (map[string]string, error) {
 }
 
 // Request sends an HTTP request.
-func (s *Service) Request(method, uri string, opts map[string]interface{}) (map[string]interface{}, error) {
+func (s *Service) Request(method, uri string, opts map[string]interface{}, token string) (map[string]interface{}, error) {
 	url := s.BaseURI + uri
 	var body []byte
 	var err error
@@ -90,7 +89,7 @@ func (s *Service) Request(method, uri string, opts map[string]interface{}) (map[
 		}
 	}
 
-	headers, err := s.getHeaders()
+	headers, err := s.getHeaders(token)
 	if err != nil {
 		return nil, err
 	}
