@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -18,9 +19,10 @@ type Service struct {
 	AsyncURIs    []string
 	Client       *http.Client
 	HTTPResponse *http.Response
+	token        string
 }
 
-func NewService(baseURI string, asyncURIs []string) *Service {
+func NewService(baseURI string, asyncURIs []string, token string) *Service {
 	return &Service{
 		BaseURI:   strings.TrimRight(baseURI, "/") + "/",
 		AsyncURIs: asyncURIs,
@@ -56,9 +58,17 @@ func (s *Service) getHeaders() (map[string]string, error) {
 		return nil, err
 	}
 
+	var userToken string
+
+	if s.token != "" {
+		userToken = fmt.Sprintf("Bearer %s", s.token)
+	} else {
+		userToken = ""
+	}
+
 	headers := map[string]string{
 		"Accept":        "application/json",
-		"Authorization": "authorization",
+		"Authorization": userToken,
 		"Access-From":   "service",
 		"Access-Key":    accessKey,
 		"App-Locale":    locale,
