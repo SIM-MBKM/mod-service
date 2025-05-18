@@ -12,7 +12,7 @@ import (
 )
 
 // AccessKeyMiddleware validates the Access-Key in the request header
-func AccessKeyMiddleware(security *helpers.Security, secretKey string, expireSeconds int64) gin.HandlerFunc {
+func AccessKeyMiddleware(secretKey string, expireSeconds int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		c.Header("Access-Control-Allow-Origin", "*")
@@ -32,23 +32,17 @@ func AccessKeyMiddleware(security *helpers.Security, secretKey string, expireSec
 			c.Abort()
 			return
 		}
-		// Dekripsi Access-Key
+
+		security := helpers.NewSecurityAccessKey()
 		decryptedKey, err := security.Decrypt(accessKey)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "Tidak ada otorisasi service"})
 			c.Abort()
 			return
 		}
-		// Lakukan type assertion ke string
-		decryptedKeyStr, ok := decryptedKey.(string)
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Format kunci tidak valid"})
-			c.Abort()
-			return
-		}
 
 		// Pisahkan secretKey dan timestamp
-		parts := strings.Split(decryptedKeyStr, "@")
+		parts := strings.Split(decryptedKey, "@")
 		if len(parts) != 2 || parts[0] != secretKey {
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "Tidak ada otorisasi service"})
 			c.Abort()

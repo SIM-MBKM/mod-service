@@ -5,8 +5,6 @@ import (
 
 	"github.com/SIM-MBKM/mod-service/src/helpers"
 	"github.com/SIM-MBKM/mod-service/src/middleware"
-	"github.com/SIM-MBKM/mod-service/src/service"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,30 +12,30 @@ func main() {
 	helpers.LoadEnv()
 	secretKey := helpers.GetEnv("APP_KEY", "secret")
 
-	// Konfigurasi middleware
-	security := helpers.NewSecurity("sha256", secretKey, "aes")
-	expireSeconds := int64(9999)
+	expireSeconds := int64(99999)
 
 	// Inisialisasi Gin
 	r := gin.Default()
 
-	// Tambahkan middleware
-	r.Use(middleware.AccessKeyMiddleware(security, secretKey, expireSeconds))
+	r.Use(middleware.AccessKeyMiddleware(secretKey, expireSeconds))
 
-	authService := service.NewAuthService("http://localhost:8082", []string{"/async"})
+	// Generate Key endpoint
+	r.GET("/generate-key", func(c *gin.Context) {
+		generator := helpers.NewSecurityAccessKey()
+		accessKey, err := generator.GenerateAccessKey()
 
-	opts := map[string]interface{}{
-		"username": "admin",
-		"password": "test",
-	}
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Sprintf("Error generating access key: %v", err),
+			})
+			return
+		}
 
-	res, err := authService.Service.Request("POST", "login", opts, "")
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(res)
+		c.JSON(200, gin.H{
+			"access_key": accessKey,
+			"note":       "This key can be used with Laravel Security::decrypt()",
+		})
+	})
 
 	r.GET("/secure-endpoint", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "Authorized"})
