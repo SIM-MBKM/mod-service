@@ -31,11 +31,8 @@ func NewService(baseURI string, asyncURIs []string) *Service {
 
 // getHeaders generates the headers for the request.
 func (s *Service) getHeaders(token string) (map[string]string, error) {
-	security := helpers.NewSecurity(
-		"sha256",
-		helpers.GetEnv("APP_KEY", "secret"),
-		"aes",
-	)
+	helpers.LoadEnv()
+	security := helpers.NewSecurityAccessKey()
 
 	// Mengambil waktu saat ini
 	currentTime := time.Now()
