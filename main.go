@@ -16,8 +16,16 @@ func main() {
 
 	// Inisialisasi Gin
 	r := gin.Default()
+	frontendConfig := &middleware.FrontendConfig{
+		AllowedOrigins:    []string{"http://localhost:3000"},
+		AllowedReferers:   []string{"http://localhost:3000"},
+		RequireOrigin:     true,
+		BypassForBrowsers: true,
+		CustomHeader:      "X-Custom-Header",
+		CustomHeaderValue: "CustomValue",
+	}
 
-	r.Use(middleware.AccessKeyMiddleware(secretKey, expireSeconds))
+	r.Use(middleware.AccessKeyMiddleware(secretKey, expireSeconds, frontendConfig))
 
 	// Generate Key endpoint
 	r.GET("/generate-key", func(c *gin.Context) {
