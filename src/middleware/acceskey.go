@@ -11,8 +11,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// FrontendConfig holds configuration for frontend request detection
+type FrontendConfig struct {
+	AllowedOrigins    []string
+	AllowedReferers   []string
+	RequireOrigin     bool
+	BypassForBrowsers bool
+	CustomHeader      string
+	CustomHeaderValue string
+}
+
 // AccessKeyMiddleware validates the Access-Key in the request header
-func AccessKeyMiddleware(secretKey string, expireSeconds int64) gin.HandlerFunc {
+func AccessKeyMiddleware(secretKey string, expireSeconds int64, frontendConfig *FrontendConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		c.Header("Access-Control-Allow-Origin", "*")
@@ -22,6 +32,14 @@ func AccessKeyMiddleware(secretKey string, expireSeconds int64) gin.HandlerFunc 
 
 		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(204)
+			return
+		}
+
+		// BYPASS ACCESS KEY UNTUK FRONTEND REQUESTS (jika dikonfigurasi)
+		if frontendConfig != nil && isFrontendRequest(c, frontendConfig) {
+			// Log untuk debugging (opsional)
+			// fmt.Println("Frontend request detected, bypassing access key validation")
+			c.Next()
 			return
 		}
 
@@ -69,4 +87,52 @@ func AccessKeyMiddleware(secretKey string, expireSeconds int64) gin.HandlerFunc 
 		// Lanjut ke handler berikutnya
 		c.Next()
 	}
+}
+
+func isFrontendRequest(c *gin.Context, config *FrontendConfig) bool {
+	// CHECK 1: Custom header (highest priority)
+	if config.CustomHeader != "" {
+		headerValue := c.GetHeader(config.CustomHeader)
+		if config.CustomHeaderValue != "" {
+			return headerValue == config.CustomHeaderValue
+		}
+		return headerValue != ""
+	}
+
+	// CHECK 2: Origin header validation
+	origin := c.GetHeader("Origin")
+	if len(config.AllowedOrigins) > 0 {
+		for _, allowedOrigin := range config.AllowedOrigins {
+			if origin == allowedOrigin {
+				return true
+			}
+		}
+		// Jika RequireOrigin=true dan origin tidak match, return false
+		if config.RequireOrigin {
+			return false
+		}
+	}
+
+	// CHECK 3: Referer header validation
+	if len(config.AllowedReferers) > 0 {
+		referer := c.GetHeader("Referer")
+		for _, allowedReferer := range config.AllowedReferers {
+			if strings.Contains(referer, allowedReferer) {
+				return true
+			}
+		}
+	}
+
+	// CHECK 4: Browser User-Agent check (jika diaktifkan)
+	if config.BypassForBrowsers {
+		userAgent := c.GetHeader("User-Agent")
+		browserUserAgents := []string{"Mozilla", "Chrome", "Safari", "Firefox", "Edge"}
+		for _, ua := range browserUserAgents {
+			if strings.Contains(userAgent, ua) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
